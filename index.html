@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blog</title>
+    <style>
+        :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+        .skip { position: absolute; transform: translateY(-100%); transition: transform 0.2s; background: #3b82f6; color: white; padding: 0.5rem; }
+        .skip:focus { transform: translateY(0); }
+        button:active { transform: scale(0.95); }
+        header, footer { padding: 1rem; border-bottom: 1px solid #ccc; }
+        footer { border-top: 1px solid #ccc; border-bottom: none; }
+        main { padding: 2rem; }
+        .sub-form { display: flex; flex-direction: column; gap: 0.5rem; max-width: 320px; margin-top: 1.5rem; }
+        .sub-group { display: flex; gap: 0.5rem; }
+        .sub-input { flex: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; background: transparent; color: inherit; }
+        .sub-btn { background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.2s, transform 0.1s; }
+        .sub-btn:hover { background: #2563eb; }
+        .spinner { width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .feedback { font-size: 0.9rem; color: #16a34a; min-height: 1.5rem; }
+    </style>
+</head>
+<body>
+    <a href="#main" class="skip">Skip to content</a>
+    <header role="banner"><nav><strong>Blog</strong></nav></header>
+    <main id="main" role="main">
+        <h1>Welcome</h1>
+        <p>An accessible reading experience.</p>
+        <form id="sub-form" class="sub-form">
+            <label for="sub-email"><strong>Subscribe to our newsletter</strong></label>
+            <div class="sub-group">
+                <input id="sub-email" type="email" required placeholder="you@example.com" class="sub-input">
+                <button type="submit" class="sub-btn">
+                    <span>Subscribe</span>
+                    <span class="spinner" hidden></span>
+                </button>
+            </div>
+            <div id="feedback" role="status" aria-live="polite" class="feedback"></div>
+        </form>
+    </main>
+    <footer role="contentinfo"><p>&copy; 2024 Blog</p></footer>
+    <script>
+        document.getElementById('sub-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target, input = form.querySelector('input'), btn = form.querySelector('button'), spin = form.querySelector('.spinner'), feedback = document.getElementById('feedback');
+            input.disabled = btn.disabled = true; spin.hidden = false; feedback.textContent = '';
+            setTimeout(() => {
+                input.disabled = btn.disabled = false; spin.hidden = true;
+                feedback.textContent = 'Thanks for subscribing!'; form.reset();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
