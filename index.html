@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessible Blog</title>
+<style>
+:root { color-scheme: light dark; --bg: #fff; --text: #111; }
+@media (prefers-color-scheme: dark) { :root { --bg: #121212; --text: #e0e0e0; } }
+body { font-family: system-ui; background: var(--bg); color: var(--text); margin: 2rem auto; max-width: 60ch; padding: 0 1rem; }
+.skip { position: absolute; transform: translateY(-100%); transition: transform .2s; }
+.skip:focus { transform: translateY(0); outline: 3px solid #ffbf47; }
+a:focus-visible { outline: 3px solid #ffbf47; }
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Skip to content</a>
+<header><nav><a href="/">📝 Blog</a></nav></header>
+<main id="main">
+<h1>Blog</h1>
+<article><h2><a href="#">First Post</a></h2><p>Accessible design from day one.</p></article>
+</main>
+<footer><p>&copy; 2024 Blog</p></footer>
+</body>
+</html>
