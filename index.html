@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Blog Project</title>
+    <script>
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    </script>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --accent: #2563eb;
+            --error: #dc2626;
+            --border: #e5e7eb;
+            --focus-ring: #2563eb;
+            --hover-bg: rgba(0, 0, 0, 0.05);
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --accent: #60a5fa;
+            --error: #f87171;
+            --border: #374151;
+            --focus-ring: #60a5fa;
+            --hover-bg: rgba(255, 255, 255, 0.1);
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: system-ui, sans-serif; line-height: 1.5; margin: 0; padding: 2rem; max-width: 800px; margin: 0 auto; }
+
+        /* Form control states, transitions and spinner styles */
+        #newsletter-form button:active:not(:disabled) { transform: scale(0.95); }
+        #newsletter-form button:focus-visible, #newsletter-form input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+        #newsletter-form input[aria-invalid="true"]:focus-visible { outline: 2px solid var(--error); }
+        #newsletter-form input[aria-invalid="true"] { border-color: var(--error) !important; }
+        #newsletter-form button:disabled, #newsletter-form input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Interactive feedback for newsletter submit button */
+        #newsletter-form button[type="submit"] {
+            transition: transform 0.1s, background-color 0.2s, filter 0.2s;
+        }
+        #newsletter-form button[type="submit"]:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+        .spinner { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.6s linear infinite; }
+        .spinner[hidden] { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Skip link */
+        .skip-link { position: absolute; top: 0; left: 0; background: var(--accent); color: #fff; padding: 8px; transform: translateY(-100%); transition: transform 0.2s; z-index: 100; }
+        .skip-link:focus { transform: translateY(0); }
+
+        /* Header & Button micro-UX styles */
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        header button {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+        }
+        header button:hover { background-color: var(--hover-bg); }
+        header button svg { transition: transform 0.3s ease; }
+        #theme-toggle .sun-icon { display: none; }
+        #theme-toggle .moon-icon { display: block; }
+        :root[data-theme="dark"] #theme-toggle .sun-icon { display: block; }
+        :root[data-theme="dark"] #theme-toggle .moon-icon { display: none; }
+        #theme-toggle:hover svg { transform: rotate(15deg); }
+        header button:active { transform: scale(0.95); }
+
+        /* Hamburger to "X" transformation rules */
+        header button svg line {
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+            transform-origin: center;
+        }
+        header button[aria-expanded="true"] .line-top {
+            transform: translateY(6px) rotate(45deg);
+        }
+        header button[aria-expanded="true"] .line-mid {
+            opacity: 0;
+            transform: scaleX(0);
+        }
+        header button[aria-expanded="true"] .line-bot {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        /* Focus visible outline matching theme colors */
+        header button:focus-visible, .nav-menu a:focus-visible, .skip-link:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        /* Navigation Menu styles & Animation */
+        .nav-menu {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .nav-menu ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 1.5rem; }
+        .nav-menu a {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .nav-menu a:hover { background-color: var(--hover-bg); color: var(--accent); }
+        .nav-menu a[aria-current="page"] {
+            background-color: var(--hover-bg);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <header>
+        <h1>The Blog Project</h1>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="theme-toggle" aria-label="Toggle theme">
+                <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <button aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <line class="line-top" x1="3" y1="6" x2="21" y2="6"></line>
+                    <line class="line-mid" x1="3" y1="12" x2="21" y2="12"></line>
+                    <line class="line-bot" x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+    <nav id="nav-menu" class="nav-menu" hidden aria-label="Main Navigation">
+        <ul>
+            <li><a href="#main">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+    <main id="main">
+        <p>A space for high-quality content, seamless UX, and uncompromising accessibility.</p>
+        <section id="about" style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;"><h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">About The Blog</h2><p>Our blog is dedicated to sharing insights on modern web development, focusing on accessible, user-centric interfaces.</p></section>
+        <section id="contact" style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;"><h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Stay Updated</h2><p style="color: gray; font-size: 0.9rem; margin-bottom: 1rem;">Subscribe to our newsletter for the latest blog posts and platform updates.</p><form id="newsletter-form" style="display: flex; gap: 0.5rem; max-width: 400px; flex-wrap: wrap;" novalidate><label for="email-input" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Email Address</label><input id="email-input" type="email" required placeholder="you@example.com" aria-describedby="form-feedback" style="flex: 1; min-width: 200px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; font-size: 0.9rem;" /><button type="submit" style="background: var(--accent); color: white; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.1s, background-color 0.2s; font-size: 0.9rem;"><span>Subscribe</span><span class="spinner" hidden></span></button></form><div id="form-feedback" role="status" aria-live="polite" style="margin-top: 0.5rem; font-size: 0.9rem; font-weight: 500; min-height: 1.5rem;"></div></section>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.querySelector('header button[aria-controls="nav-menu"]');
+            const navMenu = document.getElementById('nav-menu');
+            const themeBtn = document.getElementById('theme-toggle');
+
+            if (themeBtn) {
+                const updateThemeUI = (t) => {
+                    themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+                };
+                updateThemeUI(document.documentElement.getAttribute('data-theme'));
+                themeBtn.addEventListener('click', () => {
+                    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    updateThemeUI(newTheme);
+                });
+            }
+
+            if (menuBtn && navMenu) {
+                // Click toggle logic
+                menuBtn.addEventListener('click', () => {
+                    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                    menuBtn.setAttribute('aria-expanded', !isExpanded);
+                    navMenu.hidden = isExpanded;
+                });
+
+                // Keyboard escape to close menu
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && menuBtn.getAttribute('aria-expanded') === 'true') {
+                        menuBtn.setAttribute('aria-expanded', 'false');
+                        navMenu.hidden = true;
+                        menuBtn.focus();
+                    }
+                });
+
+                // Click outside to close menu
+                document.addEventListener('click', (e) => {
+                    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                    if (isExpanded && !menuBtn.contains(e.target) && !navMenu.contains(e.target)) {
+                        menuBtn.setAttribute('aria-expanded', 'false');
+                        navMenu.hidden = true;
+                    }
+                });
+
+                // Update active link and auto-close menu on selection
+                const links = navMenu.querySelectorAll('a');
+                const currentHash = window.location.hash || '#main';
+                links.forEach(link => {
+                    if (link.getAttribute('href') === currentHash) {
+                        link.setAttribute('aria-current', 'page');
+                    }
+                    link.addEventListener('click', () => {
+                        links.forEach(l => l.removeAttribute('aria-current'));
+                        link.setAttribute('aria-current', 'page');
+                        menuBtn.setAttribute('aria-expanded', 'false');
+                        navMenu.hidden = true;
+                    });
+                });
+            }
+
+            // Newsletter form submission handling with micro-UX validation
+            const f = document.getElementById('newsletter-form');
+            if (f) {
+                const i = document.getElementById('email-input');
+                const fb = document.getElementById('form-feedback');
+
+                const validateEmail = (showError = false) => {
+                    const val = i.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!val) {
+                        if (showError) {
+                            i.setAttribute('aria-invalid', 'true');
+                            fb.textContent = 'Please enter an email address.';
+                            fb.style.color = 'var(--error)';
+                        }
+                        return false;
+                    } else if (!emailRegex.test(val)) {
+                        if (showError) {
+                            i.setAttribute('aria-invalid', 'true');
+                            fb.textContent = 'Please enter a valid email address (e.g., name@example.com).';
+                            fb.style.color = 'var(--error)';
+                        }
+                        return false;
+                    }
+                    i.removeAttribute('aria-invalid');
+                    fb.textContent = '';
+                    return true;
+                };
+
+                i.addEventListener('blur', () => {
+                    validateEmail(true);
+                });
+
+                i.addEventListener('input', () => {
+                    if (i.getAttribute('aria-invalid') === 'true') {
+                        validateEmail(false);
+                    }
+                });
+
+                f.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (!validateEmail(true)) {
+                        i.focus();
+                        return;
+                    }
+                    const b = f.querySelector('button'), s = b.querySelector('.spinner');
+                    i.disabled = b.disabled = true; s.removeAttribute('hidden'); fb.textContent = '';
+                    setTimeout(() => {
+                        i.disabled = b.disabled = false; s.setAttribute('hidden', '');
+                        fb.textContent = '✓ Thank you for subscribing! Check your email to confirm.'; fb.style.color = 'var(--accent)'; f.reset();
+                    }, 1200);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
