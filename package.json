@@ -1,0 +1,9 @@
+{
+  "name": "blog",
+  "scripts": {
+    "test": "echo \"Status: No tests configured yet.\" && exit 0",
+    "lint": "echo \"Status: No linting configured yet.\" && exit 0",
+    "format": "echo \"Status: No formatter configured yet.\" && exit 0",
+    "build": "echo \"Status: No build configured yet.\" && exit 0"
+  }
+}
