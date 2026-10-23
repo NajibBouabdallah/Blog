@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Blog Project</title>
+    <script>
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    </script>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --accent: #2563eb;
+            --error: #dc2626;
+            --border: #e5e7eb;
+            --focus-ring: #2563eb;
+            --hover-bg: rgba(0, 0, 0, 0.05);
+            --text-muted: #4b5563;
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --accent: #60a5fa;
+            --error: #f87171;
+            --border: #374151;
+            --focus-ring: #60a5fa;
+            --hover-bg: rgba(255, 255, 255, 0.1);
+            --text-muted: #9ca3af;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: system-ui, sans-serif; line-height: 1.5; margin: 0; padding: 2rem; max-width: 800px; margin: 0 auto; }
+
+        /* Smooth global theme transitions on manual toggle */
+        body.theme-transition-active,
+        body.theme-transition-active * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+        }
+
+        /* Form control states, transitions and spinner styles */
+        #newsletter-form button:active:not(:disabled) { transform: scale(0.95); }
+        #newsletter-form button:focus-visible, #newsletter-form input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+        #newsletter-form input[aria-invalid="true"]:focus-visible { outline: 2px solid var(--error); }
+        #newsletter-form input[aria-invalid="true"] { border-color: var(--error) !important; }
+        #newsletter-form button:disabled, #newsletter-form input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Clear email button states */
+        #clear-email-btn:hover { background-color: var(--hover-bg); opacity: 1 !important; }
+        #clear-email-btn:active { transform: scale(0.9); }
+        #clear-email-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; opacity: 1 !important; }
+
+        /* Interactive feedback for newsletter submit button */
+        #newsletter-form button[type="submit"] {
+            transition: transform 0.1s, background-color 0.2s, filter 0.2s;
+        }
+        #newsletter-form button[type="submit"]:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+        #newsletter-form button[type="submit"].subscribed {
+            background: #10b981 !important;
+        }
+        #newsletter-form button[type="submit"] .check-icon {
+            display: none;
+        }
+        #newsletter-form button[type="submit"].subscribed .check-icon {
+            display: inline-flex !important;
+        }
+        .spinner { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: spin 0.6s linear infinite; }
+        .spinner[hidden] { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Skip link & Main/Section focus routing */
+        .skip-link { position: absolute; top: 0; left: 0; background: var(--accent); color: #fff; padding: 8px; transform: translateY(-100%); transition: transform 0.2s; z-index: 100; }
+        .skip-link:focus { transform: translateY(0); }
+        #main:focus, section:focus { outline: none; }
+
+        /* Header & Button micro-UX styles */
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        header button, #share-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+        }
+        header button {
+            width: 40px;
+            height: 40px;
+            padding: 0 !important;
+        }
+        #share-btn { padding: 0.5rem 1rem; }
+        #share-btn .check-icon { display: none; }
+        #share-btn.copied .share-icon { display: none; }
+        #share-btn.copied .check-icon { display: inline-flex; }
+        #share-btn.copied {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            color: #10b981 !important;
+        }
+        header button:hover, #share-btn:hover { background-color: var(--hover-bg); }
+        header button svg { transition: transform 0.3s ease; }
+
+        /* Spring-like rotating theme toggle transition */
+        #theme-toggle {
+            position: relative;
+        }
+        #theme-toggle svg {
+            position: absolute;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+        }
+        :root[data-theme="light"] #theme-toggle .sun-icon {
+            opacity: 0;
+            transform: scale(0.5) rotate(-90deg);
+        }
+        :root[data-theme="light"] #theme-toggle .moon-icon {
+            opacity: 1;
+            transform: scale(1) rotate(0);
+        }
+        :root[data-theme="dark"] #theme-toggle .sun-icon {
+            opacity: 1;
+            transform: scale(1) rotate(0);
+        }
+        :root[data-theme="dark"] #theme-toggle .moon-icon {
+            opacity: 0;
+            transform: scale(0.5) rotate(90deg);
+        }
+        #theme-toggle:hover .moon-icon, #theme-toggle:hover .sun-icon {
+            transform: scale(1) rotate(15deg);
+        }
+        header button:active, #share-btn:active { transform: scale(0.95); }
+
+        /* Hamburger to "X" transformation rules */
+        header button svg line {
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+            transform-origin: center;
+        }
+        header button[aria-expanded="true"] .line-top {
+            transform: translateY(6px) rotate(45deg);
+        }
+        header button[aria-expanded="true"] .line-mid {
+            opacity: 0;
+            transform: scaleX(0);
+        }
+        header button[aria-expanded="true"] .line-bot {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        /* Focus visible outline matching theme colors */
+        header button:focus-visible, #share-btn:focus-visible, #back-to-top:focus-visible, .nav-menu a:focus-visible, .skip-link:focus-visible, footer kbd:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+        #back-to-top:hover { background-color: var(--hover-bg); }
+        #back-to-top:active { transform: scale(0.95); }
+
+        @keyframes focusPulse {
+            0% { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+            50% { outline: 4px solid var(--focus-ring); outline-offset: 4px; }
+            100% { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+        }
+        .focus-pulsed {
+            animation: focusPulse 0.4s ease-out;
+        }
+
+        /* Footer and Keyboard Shortcut Hints Style */
+        footer {
+            margin-top: 4rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .shortcuts-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+        .shortcut-chip {
+            background: transparent;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: inherit;
+            color: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .shortcut-chip:hover {
+            background-color: var(--hover-bg);
+        }
+        .shortcut-chip:active {
+            transform: scale(0.95);
+        }
+        .shortcut-chip:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+        kbd {
+            background-color: var(--hover-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.1rem 0.4rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: inherit;
+            display: inline-block;
+            transition: transform 0.1s, background-color 0.1s, border-color 0.1s;
+        }
+        kbd.kbd-pressed {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            transform: scale(0.9);
+        }
+
+        /* Navigation Menu styles & Animation */
+        .nav-menu {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 1.5rem;
+            animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .nav-menu ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 1.5rem; }
+        .nav-menu a {
+            color: inherit;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s, transform 0.1s;
+        }
+        .nav-menu a:hover { background-color: var(--hover-bg); color: var(--accent); }
+        .nav-menu a:active { transform: scale(0.96); }
+        .nav-menu a[aria-current="page"] {
+            background-color: var(--hover-bg);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Support users who prefer reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto !important; }
+            * {
+                animation-duration: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0s !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main" class="skip-link" title="Skip to main content">Skip to content</a>
+    <header>
+        <h1>The Blog Project</h1>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div id="theme-status" role="status" aria-live="polite" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;"></div>
+            <button id="theme-toggle" aria-label="Toggle theme" aria-keyshortcuts="t" title="Toggle theme (Press T)">
+                <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <button id="menu-toggle" aria-label="Open navigation menu" aria-keyshortcuts="m" aria-expanded="false" aria-controls="nav-menu" title="Open navigation menu (Press M)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <line class="line-top" x1="3" y1="6" x2="21" y2="6"></line>
+                    <line class="line-mid" x1="3" y1="12" x2="21" y2="12"></line>
+                    <line class="line-bot" x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </header>
+    <nav id="nav-menu" class="nav-menu" hidden aria-label="Main Navigation">
+        <ul>
+            <li><a href="#main">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+    <main id="main" tabindex="-1">
+        <p>A space for high-quality content, seamless UX, and uncompromising accessibility.</p>
+        <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <button id="share-btn" aria-label="Share current page link" aria-keyshortcuts="s" title="Share current page link (Press S)" style="font-size: 0.9rem; font-weight: 500; gap: 0.5rem;">
+                <svg class="share-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <svg class="check-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Share Link</span>
+            </button>
+            <div id="share-feedback" role="status" aria-live="polite" style="font-size: 0.9rem; font-weight: 500; color: var(--accent); opacity: 0; transition: opacity 0.3s ease;"></div>
+        </div>
+        <section id="about" tabindex="-1" aria-labelledby="about-heading" style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;"><h2 id="about-heading" style="font-size: 1.25rem; margin-bottom: 0.5rem;">About The Blog</h2><p>Our blog is dedicated to sharing insights on modern web development, focusing on accessible, user-centric interfaces.</p></section>
+        <section id="contact" tabindex="-1" aria-labelledby="contact-heading" style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;"><h2 id="contact-heading" style="font-size: 1.25rem; margin-bottom: 0.5rem;">Stay Updated</h2><p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Subscribe to our newsletter for the latest blog posts and platform updates.</p><form id="newsletter-form" style="display: flex; gap: 0.5rem; max-width: 400px; flex-wrap: wrap;" novalidate><label for="email-input" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Email Address</label><div style="position: relative; flex: 1; min-width: 200px; display: flex; align-items: center;"><input id="email-input" type="email" required autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" aria-describedby="form-feedback" aria-keyshortcuts="e" style="width: 100%; box-sizing: border-box; padding: 0.5rem 2.2rem 0.5rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; font-size: 0.9rem;" /><button id="clear-email-btn" type="button" aria-label="Clear email address" aria-controls="email-input" title="Clear email address" style="position: absolute; right: 0.25rem; background: transparent; border: none; padding: 0.25rem; display: none; cursor: pointer; color: inherit; opacity: 0.6; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; transition: opacity 0.2s, background-color 0.2s;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><button type="submit" aria-label="Subscribe to newsletter" title="Subscribe to newsletter" style="background: var(--accent); color: white; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.1s, background-color 0.2s; font-size: 0.9rem;"><svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false" style="margin-right: 0.25rem;"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Subscribe</span><span class="spinner" hidden></span></button></form><div id="form-feedback" role="status" aria-live="polite" style="margin-top: 0.5rem; font-size: 0.9rem; font-weight: 500; min-height: 1.5rem;"></div></section>
+    </main>
+    <footer>
+        <button id="back-to-top" aria-label="Back to top of page" aria-controls="main" aria-keyshortcuts="b" title="Back to top of page (Press B)" style="background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.8rem; cursor: pointer; color: inherit; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; transition: background-color 0.2s, transform 0.1s;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 15l-6-6-6 6"/></svg>
+            <span>Back to Top</span>
+        </button>
+        <p style="margin-top: 1rem;">Tip: You can use keyboard shortcuts to quickly navigate the interface!</p>
+        <div id="shortcuts-legend" class="shortcuts-container" role="region" aria-label="Keyboard shortcuts legend">
+            <button type="button" class="shortcut-chip" data-key="t" aria-label="Toggle theme shortcut (T)" title="Toggle theme shortcut (T)" aria-keyshortcuts="t"><kbd>T</kbd> Toggle Theme</button>
+            <button type="button" class="shortcut-chip" data-key="m" aria-label="Toggle menu shortcut (M)" title="Toggle menu shortcut (M)" aria-keyshortcuts="m"><kbd>M</kbd> Toggle Menu</button>
+            <button type="button" class="shortcut-chip" data-key="s" aria-label="Share link shortcut (S)" title="Share link shortcut (S)" aria-keyshortcuts="s"><kbd>S</kbd> Share Link</button>
+            <button type="button" class="shortcut-chip" data-key="e" aria-controls="email-input" aria-label="Focus email input shortcut (E)" title="Focus email input shortcut (E)" aria-keyshortcuts="e"><kbd>E</kbd> Focus Email Input</button>
+            <button type="button" class="shortcut-chip" data-key="b" aria-controls="main" aria-label="Back to top shortcut (B)" title="Back to top shortcut (B)" aria-keyshortcuts="b"><kbd>B</kbd> Back to Top</button>
+            <button type="button" class="shortcut-chip" data-key="?" aria-controls="shortcuts-legend" aria-label="Keyboard shortcuts legend (?)" title="Keyboard shortcuts legend (?)" aria-keyshortcuts="?"><kbd>?</kbd> Shortcuts</button>
+        </div>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const triggerFocusPulse = (el) => {
+                if (!el) return;
+                el.classList.remove('focus-pulsed');
+                void el.offsetWidth;
+                el.classList.add('focus-pulsed');
+                setTimeout(() => el.classList.remove('focus-pulsed'), 400);
+            };
+
+            const menuBtn = document.querySelector('header button[aria-controls="nav-menu"]');
+            const navMenu = document.getElementById('nav-menu');
+            const themeBtn = document.getElementById('theme-toggle');
+
+            let themeStatusTimeout;
+            const announceThemeChange = (msg) => {
+                const themeStatus = document.getElementById('theme-status');
+                if (themeStatus) {
+                    clearTimeout(themeStatusTimeout);
+                    themeStatus.textContent = '';
+                    themeStatus.textContent = msg;
+                    themeStatusTimeout = setTimeout(() => {
+                        themeStatus.textContent = '';
+                    }, 2500);
+                }
+            };
+
+            const toggleTheme = () => {
+                if (themeBtn) {
+                    document.body.classList.add('theme-transition-active');
+                    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    updateThemeUI(newTheme);
+                    announceThemeChange(newTheme === 'dark' ? 'Switched to dark theme' : 'Switched to light theme');
+                    setTimeout(() => {
+                        document.body.classList.remove('theme-transition-active');
+                    }, 300);
+                }
+            };
+
+            const updateThemeUI = (t) => {
+                if (themeBtn) {
+                    themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+                    themeBtn.setAttribute('title', t === 'dark' ? 'Switch to light theme (Press T)' : 'Switch to dark theme (Press T)');
+                }
+                const themeChip = document.querySelector('.shortcut-chip[data-key="t"]');
+                if (themeChip) {
+                    themeChip.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme shortcut (T)' : 'Switch to dark theme shortcut (T)');
+                    themeChip.setAttribute('title', t === 'dark' ? 'Switch to light theme shortcut (T)' : 'Switch to dark theme shortcut (T)');
+                }
+            };
+
+            if (themeBtn) {
+                updateThemeUI(document.documentElement.getAttribute('data-theme'));
+                themeBtn.addEventListener('click', toggleTheme);
+                themeBtn.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        themeBtn.blur();
+                    }
+                });
+
+                const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+                const handleSystemThemeChange = (e) => {
+                    if (!localStorage.getItem('theme')) {
+                        const newTheme = e.matches ? 'dark' : 'light';
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        updateThemeUI(newTheme);
+                        announceThemeChange(newTheme === 'dark' ? 'Switched to dark theme (System preference)' : 'Switched to light theme (System preference)');
+                    }
+                };
+                if (systemThemeMedia.addEventListener) {
+                    systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+                } else if (systemThemeMedia.addListener) {
+                    systemThemeMedia.addListener(handleSystemThemeChange);
+                }
+            }
+
+            const setMenuExpanded = (expanded, focusFirst = false) => {
+                if (!menuBtn || !navMenu) return;
+                const wasFocusInMenu = navMenu.contains(document.activeElement);
+                menuBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                menuBtn.setAttribute('aria-label', expanded ? 'Close navigation menu' : 'Open navigation menu');
+                menuBtn.setAttribute('title', expanded ? 'Close navigation menu (Press M)' : 'Open navigation menu (Press M)');
+                const menuChip = document.querySelector('.shortcut-chip[data-key="m"]');
+                if (menuChip) {
+                    menuChip.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                    menuChip.setAttribute('aria-controls', 'nav-menu');
+                    menuChip.setAttribute('aria-label', expanded ? 'Close navigation menu shortcut (M)' : 'Toggle menu shortcut (M)');
+                    menuChip.setAttribute('title', expanded ? 'Close navigation menu shortcut (M)' : 'Toggle menu shortcut (M)');
+                }
+                navMenu.hidden = !expanded;
+                if (expanded && focusFirst) {
+                    const firstLink = navMenu.querySelector('a');
+                    if (firstLink) setTimeout(() => firstLink.focus(), 50);
+                } else if (!expanded && wasFocusInMenu) {
+                    menuBtn.focus();
+                }
+            };
+
+            const toggleMenu = (focusFirst = false) => {
+                if (menuBtn && navMenu) {
+                    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                    setMenuExpanded(!isExpanded, focusFirst);
+                }
+            };
+
+            if (menuBtn && navMenu) {
+                // Click toggle logic
+                menuBtn.addEventListener('click', () => toggleMenu());
+
+                // ArrowDown on menu button to open and/or focus menu & Escape to blur when collapsed
+                menuBtn.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (menuBtn.getAttribute('aria-expanded') === 'false') {
+                            toggleMenu(true);
+                        } else {
+                            const firstLink = navMenu.querySelector('a');
+                            if (firstLink) firstLink.focus();
+                        }
+                    } else if (e.key === 'Escape' && menuBtn.getAttribute('aria-expanded') === 'false') {
+                        e.preventDefault();
+                        menuBtn.blur();
+                    }
+                });
+
+                // Keyboard escape to close menu
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && menuBtn.getAttribute('aria-expanded') === 'true') {
+                        e.preventDefault();
+                        setMenuExpanded(false);
+                        menuBtn.focus();
+                    }
+                });
+
+                // Click outside to close menu
+                document.addEventListener('click', (e) => {
+                    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                    if (isExpanded && !menuBtn.contains(e.target) && !navMenu.contains(e.target)) {
+                        setMenuExpanded(false);
+                    }
+                });
+
+                // Close menu when focus leaves the menu context
+                document.addEventListener('focusin', (e) => {
+                    const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                    if (isExpanded && !menuBtn.contains(e.target) && !navMenu.contains(e.target)) {
+                        setMenuExpanded(false);
+                    }
+                });
+
+                // Update active link, focus section landmark, and auto-close menu on selection
+                const links = Array.from(navMenu.querySelectorAll('a'));
+                const updateActiveNavLink = (shouldFocus = false) => {
+                    const hash = window.location.hash || '#main';
+                    links.forEach(link => {
+                        if (link.getAttribute('href') === hash) {
+                            link.setAttribute('aria-current', 'page');
+                        } else {
+                            link.removeAttribute('aria-current');
+                        }
+                    });
+                    if (shouldFocus && hash.startsWith('#')) {
+                        const targetEl = document.querySelector(hash);
+                        if (targetEl) {
+                            targetEl.focus();
+                            triggerFocusPulse(targetEl);
+                        }
+                    }
+                };
+                updateActiveNavLink();
+                window.addEventListener('hashchange', () => updateActiveNavLink(true));
+
+                links.forEach((link, idx) => {
+                    link.addEventListener('click', () => {
+                        setMenuExpanded(false);
+                        const href = link.getAttribute('href');
+                        const currentHash = window.location.hash || '#main';
+                        if (href === currentHash) {
+                            updateActiveNavLink(true);
+                        }
+                    });
+                    link.addEventListener('keydown', (e) => {
+                        let nextIdx;
+                        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                            nextIdx = (idx + 1) % links.length;
+                        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                            nextIdx = (idx - 1 + links.length) % links.length;
+                        } else if (e.key === 'Home') {
+                            nextIdx = 0;
+                        } else if (e.key === 'End') {
+                            nextIdx = links.length - 1;
+                        }
+                        if (nextIdx !== undefined) {
+                            e.preventDefault();
+                            links[nextIdx].focus();
+                        }
+                    });
+                });
+            }
+
+            // Skip link focus routing micro-UX
+            const skipLink = document.querySelector('.skip-link');
+            if (skipLink) {
+                skipLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const mainEl = document.getElementById('main');
+                    if (mainEl) {
+                        if (window.location.hash !== '#main') {
+                            history.pushState(null, '', '#main');
+                            window.dispatchEvent(new Event('hashchange'));
+                        }
+                        mainEl.focus();
+                        triggerFocusPulse(mainEl);
+                    }
+                });
+                skipLink.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        skipLink.blur();
+                    }
+                });
+            }
+
+            // Back to Top interaction logic
+            const backToTopBtn = document.getElementById('back-to-top');
+            const scrollToTop = () => {
+                const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+                if (window.location.hash !== '#main' && window.location.hash !== '') {
+                    history.pushState(null, '', '#main');
+                    window.dispatchEvent(new Event('hashchange'));
+                }
+                const mainEl = document.getElementById('main');
+                if (mainEl) {
+                    mainEl.focus();
+                    triggerFocusPulse(mainEl);
+                }
+            };
+
+            if (backToTopBtn) {
+                backToTopBtn.addEventListener('click', scrollToTop);
+                backToTopBtn.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        backToTopBtn.blur();
+                    }
+                });
+            }
+
+            // Share Link interaction logic
+            const shareBtn = document.getElementById('share-btn');
+            const shareFeedback = document.getElementById('share-feedback');
+            let shareTimeout;
+
+            const fallbackCopy = (text) => {
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return successful;
+                } catch (err) {
+                    return false;
+                }
+            };
+
+            const triggerShare = () => {
+                if (!shareBtn || !shareFeedback) return;
+                const shareChip = document.querySelector('.shortcut-chip[data-key="s"]');
+                const copyUrl = window.location.href;
+                const showSuccess = () => {
+                    clearTimeout(shareTimeout);
+                    shareBtn.classList.add('copied');
+                    shareBtn.setAttribute('aria-label', 'Link copied to clipboard');
+                    shareBtn.setAttribute('title', 'Link copied to clipboard');
+                    if (shareChip) {
+                        shareChip.setAttribute('aria-label', 'Link copied to clipboard shortcut (S)');
+                        shareChip.setAttribute('title', 'Link copied to clipboard shortcut (S)');
+                    }
+                    shareBtn.querySelector('span').textContent = 'Copied!';
+                    shareFeedback.textContent = '';
+                    shareFeedback.textContent = '✓ Link copied to clipboard!';
+                    shareFeedback.style.color = 'var(--accent)';
+                    shareFeedback.style.opacity = '1';
+                    shareTimeout = setTimeout(() => {
+                        shareFeedback.style.opacity = '0';
+                        shareBtn.classList.remove('copied');
+                        shareBtn.setAttribute('aria-label', 'Share current page link');
+                        shareBtn.setAttribute('title', 'Share current page link (Press S)');
+                        if (shareChip) {
+                            shareChip.setAttribute('aria-label', 'Share link shortcut (S)');
+                            shareChip.setAttribute('title', 'Share link shortcut (S)');
+                        }
+                        shareBtn.querySelector('span').textContent = 'Share Link';
+                        setTimeout(() => {
+                            if (shareFeedback.style.opacity === '0') {
+                                shareFeedback.textContent = '';
+                            }
+                        }, 300);
+                    }, 2000);
+                };
+                const showError = () => {
+                    clearTimeout(shareTimeout);
+                    shareFeedback.textContent = '';
+                    shareFeedback.textContent = '✕ Unable to copy link to clipboard';
+                    shareFeedback.style.color = 'var(--error)';
+                    shareFeedback.style.opacity = '1';
+                    shareTimeout = setTimeout(() => {
+                        shareFeedback.style.opacity = '0';
+                        setTimeout(() => {
+                            if (shareFeedback.style.opacity === '0') {
+                                shareFeedback.textContent = '';
+                            }
+                        }, 300);
+                    }, 3000);
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(copyUrl).then(showSuccess).catch(() => {
+                        fallbackCopy(copyUrl) ? showSuccess() : showError();
+                    });
+                } else {
+                    fallbackCopy(copyUrl) ? showSuccess() : showError();
+                }
+            };
+
+            if (shareBtn && shareFeedback) {
+                shareBtn.addEventListener('click', triggerShare);
+                shareBtn.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        shareBtn.blur();
+                    }
+                });
+            }
+
+            // Focusable landmark section Escape focus release
+            const focusableLandmarks = document.querySelectorAll('#main, section[tabindex="-1"]');
+            focusableLandmarks.forEach((el) => {
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        el.blur();
+                    }
+                });
+            });
+
+            // Focus Shortcuts Legend Logic
+            const focusShortcuts = () => {
+                const sc = document.querySelector('.shortcuts-container');
+                const firstChip = document.querySelector('.shortcut-chip');
+                if (sc) {
+                    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    sc.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+                    triggerFocusPulse(sc);
+                }
+                if (firstChip) {
+                    firstChip.focus();
+                }
+            };
+
+            // Legend Shortcut Chips Interaction Logic
+            const shortcutChips = Array.from(document.querySelectorAll('.shortcut-chip'));
+            shortcutChips.forEach((chip, idx) => {
+                chip.addEventListener('click', () => {
+                    const key = chip.getAttribute('data-key');
+                    if (!key) return;
+                    if (key === 't') {
+                        toggleTheme();
+                    } else if (key === 'm') {
+                        toggleMenu(true);
+                    } else if (key === 's') {
+                        triggerShare();
+                    } else if (key === 'e') {
+                        const emailInput = document.getElementById('email-input');
+                        if (emailInput) {
+                            emailInput.focus();
+                            emailInput.select();
+                            triggerFocusPulse(emailInput);
+                        }
+                    } else if (key === 'b') {
+                        scrollToTop();
+                    } else if (key === '?') {
+                        focusShortcuts();
+                    }
+                    const kbd = chip.querySelector('kbd');
+                    if (kbd) {
+                        kbd.classList.add('kbd-pressed');
+                        setTimeout(() => kbd.classList.remove('kbd-pressed'), 150);
+                    }
+                });
+
+                chip.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        chip.blur();
+                        return;
+                    }
+                    let nextIdx;
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        nextIdx = (idx + 1) % shortcutChips.length;
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        nextIdx = (idx - 1 + shortcutChips.length) % shortcutChips.length;
+                    } else if (e.key === 'Home') {
+                        nextIdx = 0;
+                    } else if (e.key === 'End') {
+                        nextIdx = shortcutChips.length - 1;
+                    }
+                    if (nextIdx !== undefined) {
+                        e.preventDefault();
+                        shortcutChips[nextIdx].focus();
+                    }
+                });
+            });
+
+            // Keyboard Shortcuts Logic
+            document.addEventListener('keydown', (e) => {
+                // Ignore shortcuts when user is inside any input or textarea
+                const activeEl = document.activeElement;
+                if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+                    return;
+                }
+
+                // Ignore shortcuts if system modifier keys are pressed (e.g. Ctrl+T, Cmd+S, Alt+M)
+                if (e.ctrlKey || e.altKey || e.metaKey) {
+                    return;
+                }
+
+                const key = e.key.toLowerCase();
+                let triggeredBtn = null;
+                let keyName = null;
+
+                if (key === 't') {
+                    toggleTheme();
+                    triggeredBtn = themeBtn;
+                    keyName = 'T';
+                } else if (key === 'm') {
+                    toggleMenu(true);
+                    triggeredBtn = menuBtn;
+                    keyName = 'M';
+                } else if (key === 's') {
+                    triggerShare();
+                    triggeredBtn = shareBtn;
+                    keyName = 'S';
+                } else if (key === 'e') {
+                    const emailInput = document.getElementById('email-input');
+                    if (emailInput) {
+                        e.preventDefault();
+                        emailInput.focus();
+                        emailInput.select();
+                        triggerFocusPulse(emailInput);
+                        triggeredBtn = emailInput;
+                        keyName = 'E';
+                    }
+                } else if (key === 'b') {
+                    e.preventDefault();
+                    scrollToTop();
+                    triggeredBtn = backToTopBtn;
+                    keyName = 'B';
+                } else if (key === '?') {
+                    e.preventDefault();
+                    focusShortcuts();
+                    keyName = '?';
+                }
+
+                if (keyName) {
+                    // Flash the matching <kbd> element in footer
+                    const kbds = Array.from(document.querySelectorAll('footer kbd'));
+                    const targetKbd = kbds.find(el => el.textContent.trim().toUpperCase() === keyName);
+                    if (targetKbd) {
+                        targetKbd.classList.add('kbd-pressed');
+                        setTimeout(() => targetKbd.classList.remove('kbd-pressed'), 150);
+                    }
+                    // Flash active state animation on the physical button
+                    if (triggeredBtn && triggeredBtn.id !== 'email-input') {
+                        triggeredBtn.style.transform = 'scale(0.95)';
+                        setTimeout(() => triggeredBtn.style.transform = '', 150);
+                    }
+                }
+            });
+
+            // Newsletter form submission handling with micro-UX validation
+            const f = document.getElementById('newsletter-form');
+            if (f) {
+                const i = document.getElementById('email-input');
+                const fb = document.getElementById('form-feedback');
+                const clearBtn = document.getElementById('clear-email-btn');
+
+                const validateEmail = (showError = false, isSubmit = false) => {
+                    const val = i.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!val) {
+                        if (showError && isSubmit) {
+                            i.setAttribute('aria-invalid', 'true');
+                            fb.textContent = 'Please enter an email address.';
+                            fb.style.color = 'var(--error)';
+                        }
+                        return false;
+                    } else if (!emailRegex.test(val)) {
+                        if (showError) {
+                            i.setAttribute('aria-invalid', 'true');
+                            fb.textContent = 'Please enter a valid email address (e.g., name@example.com).';
+                            fb.style.color = 'var(--error)';
+                        }
+                        return false;
+                    }
+                    i.removeAttribute('aria-invalid');
+                    fb.textContent = '';
+                    return true;
+                };
+
+                i.addEventListener('blur', () => {
+                    validateEmail(true, false);
+                });
+
+                const clearFeedbackMessage = () => {
+                    fb.textContent = '';
+                };
+
+                let clearFeedbackTimeout;
+                const clearEmailInput = () => {
+                    resetSubBtn();
+                    i.value = '';
+                    i.removeAttribute('aria-invalid');
+                    if (clearBtn) clearBtn.style.display = 'none';
+                    fb.style.color = 'inherit';
+                    fb.textContent = '';
+                    fb.textContent = 'Email address cleared.';
+                    clearTimeout(clearFeedbackTimeout);
+                    clearFeedbackTimeout = setTimeout(() => {
+                        if (fb.textContent === 'Email address cleared.') {
+                            fb.textContent = '';
+                        }
+                    }, 2500);
+                };
+
+                i.addEventListener('input', () => {
+                    resetSubBtn();
+                    clearFeedbackMessage();
+                    i.removeAttribute('aria-invalid');
+                    if (clearBtn) clearBtn.style.display = i.value ? 'flex' : 'none';
+                });
+
+                i.addEventListener('focus', () => {
+                    if (clearBtn) clearBtn.style.display = i.value ? 'flex' : 'none';
+                });
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => {
+                        clearEmailInput();
+                        i.focus();
+                    });
+                    clearBtn.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            clearEmailInput();
+                            i.focus();
+                        }
+                    });
+                }
+
+                i.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (i.value) {
+                            clearEmailInput();
+                        } else {
+                            i.blur();
+                        }
+                    }
+                });
+
+                let subTimeout;
+                const updateSubBtnUI = (state) => {
+                    const b = f.querySelector('button[type="submit"]');
+                    if (!b) return;
+                    if (state === 'subscribing') {
+                        b.setAttribute('aria-label', 'Subscribing to newsletter...');
+                        b.setAttribute('title', 'Subscribing to newsletter...');
+                    } else if (state === 'subscribed') {
+                        b.classList.add('subscribed');
+                        b.querySelector('span').textContent = 'Subscribed!';
+                        b.setAttribute('aria-label', 'Subscribed to newsletter');
+                        b.setAttribute('title', 'Subscribed to newsletter');
+                    } else {
+                        b.classList.remove('subscribed');
+                        b.querySelector('span').textContent = 'Subscribe';
+                        b.setAttribute('aria-label', 'Subscribe to newsletter');
+                        b.setAttribute('title', 'Subscribe to newsletter');
+                    }
+                };
+
+                const resetSubBtn = () => {
+                    const b = f.querySelector('button[type="submit"]');
+                    if (b && b.classList.contains('subscribed')) {
+                        updateSubBtnUI('default');
+                    }
+                };
+
+                const subBtn = f.querySelector('button[type="submit"]');
+                if (subBtn) {
+                    subBtn.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            e.preventDefault();
+                            subBtn.blur();
+                        }
+                    });
+                }
+
+                f.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    fb.textContent = '';
+                    i.value = i.value.trim();
+                    if (!validateEmail(true, true)) {
+                        i.focus();
+                        triggerFocusPulse(i);
+                        return;
+                    }
+                    const b = f.querySelector('button[type="submit"]'), s = b.querySelector('.spinner');
+                    resetSubBtn();
+                    i.disabled = b.disabled = true; s.removeAttribute('hidden');
+                    if (clearBtn) clearBtn.style.display = 'none';
+                    fb.textContent = 'Subscribing...';
+                    fb.style.color = 'inherit';
+                    updateSubBtnUI('subscribing');
+                    setTimeout(() => {
+                        i.disabled = b.disabled = false; s.setAttribute('hidden', '');
+                        fb.textContent = '✓ Thank you for subscribing! Check your email to confirm.'; fb.style.color = '#10b981'; f.reset(); if (clearBtn) clearBtn.style.display = 'none';
+                        updateSubBtnUI('subscribed');
+                        clearTimeout(subTimeout);
+                        subTimeout = setTimeout(() => {
+                            updateSubBtnUI('default');
+                            if (fb.textContent.includes('Thank you for subscribing')) {
+                                fb.textContent = '';
+                            }
+                        }, 5000);
+                    }, 1200);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
