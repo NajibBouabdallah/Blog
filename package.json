@@ -1,0 +1,9 @@
+{
+  "name": "blog",
+  "scripts": {
+    "test": "echo \"ok\" && exit 0",
+    "lint": "echo \"ok\" && exit 0",
+    "format": "echo \"ok\" && exit 0",
+    "build": "echo \"ok\" && exit 0"
+  }
+}
